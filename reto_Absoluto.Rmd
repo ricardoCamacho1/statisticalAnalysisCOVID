@@ -1,0 +1,542 @@
+---
+title: "Factores biológicos en muertes por COVID-19 respecto a hombres y mujeres"
+author:
+- Daniela Jiménez Téllez A01654798
+- Juan Carlos Corona Vega A01660135
+- Ricardo Camacho Castillo A01654132
+- Sebastián Espinosa López A01659912
+date: "Octubre, 2021"
+output:
+  pdf_document: 
+    latex_engine: xelatex
+    toc: yes
+    fig_caption: yes
+    number_sections: yes
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+opts_chunk$set(tidy.opts=list(width.cutoff=40),tidy=TRUE)
+```
+
+# Introducción
+
+> El COVID-19, como cualquier enfermedad contagiosa, es un problema que afecta a todo tipo de personas sin importar su clase social, país de origen, etnia u cualquier otro factor. A pesar de que este virus no discrimina, se ha demostrado que algunas condiciones previas al contagio, como hipertensión, obesidad, EPOC, etc., producen un mayor riesgo en la mortalidad. De manera análoga, se ha observado en diversos lugares del mundo que la tasa de muertes por COVID-19 ha sido mayor en hombres que en mujeres a pesar de que la tasa de contagios sea prácticamente igual para cada uno. Un ejemplo es el caso de Europa Occidental, donde el número de muertes por Coronavirus ha sido del 69% en hombres. Igualmente, en EUA, casi el doble de hombres han muerto por lo mismo con respecto a las mujeres. (Henriques, M., 2020)
+
+> Las hipótesis de factores que influyen en esta diferencia en la mortalidad entre hombres y mujeres son tanto del tipo social (diferencias en puestos de trabajo, exposición, estilos de vida), como de tipo biológicos. Una teoría de Philip Goulder, profesor de inmunología en la universidad de Oxford, afirma que la respuesta inmunológica ante el virus es más fuerte en las mujeres. Esto se debe a que la proteína encargada de detectar virus como el SARS-CoV-2 se encuentra en el cromosoma X. En caso de tener células inmunes, esta proteína se expresará al doble en las mujeres ya que tienen los cromosomas XX y solo una vez en los hombres, los cuales tienen solo un cromosoma X.
+
+> Datos recopilados por un grupo de estudiantes de Harvard (Feldsher, K., 2020) mostraron una gran diferencia entre las tasas de mortalidad de hombres y mujeres en distintos estados, teniendo en unos casi la misma proporción, mientras que en otros sucede el caso de tener el doble de mortalidad para los hombres. Estas evidencias sugieren que los factores de tipo social son los que más afectan. Sin embargo, son más difíciles de analizar ya que se presentan de muchos tipos y en diferentes contextos. Por otra parte, los datos sobre condiciones médicas (factores biológicos) sí son registrados y contables, por lo que su análisis es más sencillo.
+
+> Dicho lo anterior, el objetivo de este trabajo es identificar las diferencias entre las tasas de mortalidad por COVID-19 en hombres y mujeres. Se considerarán distintos factores biológicos como enfermedades crónicas y morbilidades, lo que permitirá contestar la siguiente pregunta: **¿cuál es la diferencia en la mortalidad por COVID-19 entre hombres y mujeres en México tomando en cuenta únicamente el factor biológico?**
+
+# Metodología
+
+> Para poder definir la pregunta rectora se tomaron en cuenta las diferentes variables que se proporcionan en la base de datos del Gobierno de México con respecto al COVID-19. De las 43 que hay, se usarán las siguientes:
+
+-   **Fecha de defunción:** se utilizará esta variable para asegurar que las personas fallecieron debido a COVID-19.
+-   **Sexo:** se utilizará esta variable para comparar las proporciones entre las defunciones por COVID-19.
+-   **Personas con diabetes:** se utilizará esta variable para analizar si la enfermedad influye en las muertes por COVID-19.
+-   **Personas con hipertensión:** se utilizará esta variable para analizar si la enfermedad influye en las muertes por COVID-19.
+-   **Personas con EPOC:** se utilizará esta variable para analizar si la enfermedad influye en las muertes por COVID-19.
+-   **Personas con enfermedad renal crónica:** se utilizará esta variable para analizar si la enfermedad influye en las muertes por COVID-19.
+-   **Personas con asma:** se utilizará esta variable para analizar si la enfermedad influye en las muertes por COVID-19.
+
+> Con base en estas, se hará un análisis exploratorio el cual permite analizar cada una de las variables y poder graficarlas para tener un mejor entendimiento de ellas.
+
+NOTA: Debido a que el parámetro seleccionado en este trabajo son proporciones y diferencias de proporciones, al ser variables discretas, no es posible utilizar métodos de análisis de varianza (ANOVA para uno o dos factores). Sin embargo, existen otros métodos similares que van más allá del alcance de este curso.
+
+
+### Análisis exploratorio
+
+```{r,echo=FALSE}
+
+# Carga de datos de la muestra
+datos_muestra = read.csv("mcovidG5Eq5.csv")
+
+# Cantidad de variables
+print("El número de variables es: ")
+length(datos_muestra) 
+
+# Nombre de las variables
+print("Los nombres de las variables son: ")
+names(datos_muestra)
+
+# Cantidad de pacientes
+print("El número de pacientes es: ")
+length(datos_muestra$ID_REGISTRO)
+
+```
+
+#### Reducción de los datos a casos positivos por COVID-19
+
+> De la muestra de 10,000 personas seleccionadas aleatoriamente se filtrarán los casos positivos por COVID-19 con el siguiente código:
+
+```{r,echo=FALSE}
+# Reducción de los datos a casos positivos por COVID-19
+positivos = datos_muestra[datos_muestra$CLASIFICACION_FINAL<4, ]
+
+```
+
+#### Reducción de los datos positivos a muertes por COVID-19
+
+> Como se mencionó anteriormente, en este proyecto se analizará la manera en que los factores biológicos afectan las muertes por COVID-19 en hombres y mujeres. Por lo tanto, se reducirán los datos para tener solo las defunciones que han habido a causa de este virus ya que no es necesario tomar en cuenta a las personas que se recuperaron.
+
+```{r,echo=FALSE}
+
+fallecidos = positivos[positivos$FECHA_DEF!="9999-99-99", ]
+
+# Guardar los datos en un Excel
+write.csv(fallecidos, "mfallecidos.csv", row.names = FALSE, fileEncoding = "UTF-8")
+
+```
+
+> Una vez teniendo la reducción, se analizarán las siguientes variables:
+
+# Análisis de Variables y Pruebas de Hipótesis
+
+#### Análisis de la variable de sexo
+
+```{r,echo=FALSE}
+# Tabla de fallecidos con respecto al sexo
+t_sexo = table(fallecidos$SEXO)
+names(t_sexo) = c("Mujeres", "Hombres")
+t_sexo
+
+NH <- t_sexo["Hombres"]
+NM <- t_sexo["Mujeres"]
+
+nh <- as.numeric(NH)
+nm <- as.numeric(NM)
+
+total = t_sexo["Mujeres"]+t_sexo["Hombres"]
+names(total) = ("Total")
+total
+
+# Tabla en proporciones
+tp_sexo = round(prop.table(t_sexo), 4)
+tp_sexo 
+
+PM = tp_sexo["Mujeres"]
+PH = tp_sexo["Hombres"]
+
+
+dif_s = round(NH-NM, 4)
+names(dif_s) = c("Diferencia")
+dif_s
+```
+
+```{r,echo=FALSE}
+# Gráfica de la tabla en proporciones
+barplot(tp_sexo, ylab = "Proporción", col = "#A3C395",
+        main = "Muertes por COVID-19 con respecto al sexo")
+```
+
+> Al ver la tabla de proporciones entre hombres y mujeres, se puede notar que los hombres son más propensos a morir por COVID-19 que las mujeres. Para poder comprobar esto, se realizará una prueba de hipótesis de dos poblaciones (hombres y mujeres), la cual tiene como hipótesis nula (H0) que las proporciones son iguales y como hipótesis alternativa (H1) que los hombres mueren más.
+
+> $H_{0} : M-H = 0$
+
+> $H_{1} : M-H < 0$
+
+> Donde *H* es la proporción de hombres y *M* es la proporción de mujeres
+
+```{r,echo=FALSE}
+# Prueba de hipótesis e intervalos de diferencia 
+# de proporciones para la variable de sexo
+t_sexoPos <- table(positivos$SEXO)
+names(t_sexoPos) <- c("Mujeres", "Hombres")
+p <- c(as.numeric(t_sexo[1]),as.numeric(t_sexo[2]))
+n <- c(as.numeric(t_sexoPos[1]),as.numeric(t_sexoPos[2]))
+prop.test(p, n, conf.level = 0.95, correct = FALSE, alternative = "less" )
+
+```
+
+> Haciendo una prueba de hipótesis para la variable de sexo se puede decir que se rechaza la hipótesis nula ya que el valor de p es mucho menor que la significancia (0.05). Lo anterior confirma que las proporciones son diferentes, implicando que la proporcion de hombres sea mayor ya que el valor de la diferencia de proporciones se encuentra dentro del intervalo de confianza calculado.
+
+## ¿La proporción de hombres fallecidos de Europa es la misma de México?
+
+> Según Henriques, M.(2020), en Europa Occidental el porcentaje de hombres que puere por COVID-19 es del 69%, por lo que creemos que en México esta proporción sera igual. Para acomprobar este supuesto planteamos la siguiente prueba de hipótesis:
+
+> $H_{0} : PH = 0.69$
+
+> $H_{1} : PH \neq 0.69$
+
+```{r,echo=FALSE}
+a = 0.05
+z1 <- abs(qnorm(a/2))
+ 
+limI <- PH - z1*sqrt(PH*(1-PH)/NH)
+limS <- PH + z1*sqrt(PH*(1-PH)/NH)
+cat("El intervalo de confianza de la proporción de hombres muertos por COVID-19 
+    es:", "[", limI, ",", limS, "]\n")
+```
+
+> Al ver el intervalo [0.6300496 , 0.6743504], no hay evidencia para decir que la proporción real de hombres que fallecieron por COVID-19 en México es igual a la que hay en Europa Occidental, ya que el 0.69 de esta región no se enceuntra dentro del intervalo de confianza calculado para México.
+
+### Análisis de la variable de diabetes con respecto al sexo
+
+> Para obtener un mejor entendimiento de la influencia de la morbilidad diabetes sobre el falleciemiento de ambos sexos, se calculan los intervalos de confianza para la diferencia de proporciones utilizando nivel de confianza del 95%
+
+```{r,echo=FALSE}
+
+# Tabla bivariada de fallecidos con respecto a las variables de diabetes y sexo
+fsexo = fallecidos$SEXO
+fdiabetes = fallecidos$DIABETES
+tb_d = table(fsexo, fdiabetes)
+
+# Tabla bivariada con nombres de referencia
+row.names(tb_d) = c("MUJERES", "HOMBRES")
+colnames(tb_d) = c("SÍ", "NO", "SR")
+print("La tabla en frecuencias:")
+tb_d
+
+
+# Tabla bivariada en porcentajes
+print("La tabla en proporciones: ")
+tp_d = round(prop.table(tb_d), 4)
+tp_d
+
+# Gráfica bidimensional para la tabla bivariada
+plot(tb_d, col = c("#EED5B7", "#B9D3EE", "#0D0D0D"), 
+     xlab = "Sexo", ylab = "Diabetes", main = "Sexo-Diabetes")
+```
+
+> Viendo la tabla se sabe que hay 992 personas que tienen diabetes. De estas, 607 son hombres, lo que nos dice que son 8.15% más propensos a morir que las mujeres. Igualmente, se puede ver que hay más fallecidos por COVID-19 que no sufren de esta enfermedad.
+
+```{r PH Diabetes,echo=FALSE}
+# Cálculo de intervalos de confianza con significancia del 0.05
+
+ph = tp_d[2,1]
+
+pm = tp_d[1,1]
+  
+a  = 0.05
+
+#Condiciones para usar la normal
+nh*ph
+nh*(1-ph)
+nm*pm
+nm*(1-pm)
+
+# Todos son mayores 5, por tanto se puede usar la normal
+
+# Regla de decisión 
+z <- abs(qnorm(0.05/2))
+
+LimID = (pm - ph) - z*sqrt(ph*(pm)/nh + pm*(ph)/nm)
+LimSD = (pm - ph) + z*sqrt(ph*(pm)/nh + pm*(ph)/nm)
+
+cat("El intervalo de diferencia de proporciones de mujeres y hombres fallecidos 
+    con diabetes", "[", LimID, ",", LimSD, "]\n")
+
+```
+
+> Del intervalo de confianza calculado podemos asegurar que la diferencia de proporciones es negativa, ya que la proporción de hombres que fallecieron y padecían de Diabetes es mayor a la de las mujeres. Esto confirma lo observado en la gráfica bidimensional.
+
+### Análisis de la variable de hipertensión con respecto al sexo
+
+> Para obtener un mejor entendimiento de la influencia de la morbilidad hipertensión sobre el falleciemiento de ambos sexos, se calculan los intervalos de confianza para la diferencia de proporciones utilizando nivel de confianza del 95%
+
+```{r,echo=FALSE}
+
+# Tabla bivariada de fallecidos con respecto a las variables de hipertensión y sexo
+fsexo = fallecidos$SEXO
+fhipertension = fallecidos$HIPERTENSION
+tb_h = table(fsexo, fhipertension)
+
+# Tabla bivariada con nombres de referencia
+row.names(tb_h) = c("MUJERES", "HOMBRES")
+colnames(tb_h) = c("SÍ", "NO", "SR")
+print("La tabla en frecuencias:")
+tb_h
+
+# Tabla bivariada en porcentajes
+print("La tabla en proporciones: ")
+tp_h = round(prop.table(tb_h), 4)
+tp_h
+
+# Gráfica bidimensional para la tabla bivariada
+plot(tb_h, col = c("#E0EEE0", "#EED2EE", "#0D0D0D"), 
+     xlab = "Sexo", ylab = "Hipertensión", main = "Sexo-Hipertensión")
+```
+
+> Por otro lado, al ver esta tabla se sabe que hay 1,178 personas que tienen hipertensión. De estas, 709 son hombres, lo que nos dice que son 8.82% más propensos a morir que las mujeres. Igualmente, se puede ver que hay más fallecidos por COVID-19 que no sufren de esta enfermedad.
+
+```{r PH Hipertensión,echo=FALSE}
+# Cálculo de intervalos de confianza con significancia del 0.05
+
+ph = tp_h[2,1]
+
+pm = tp_h[1,1]
+  
+a  = 0.05
+
+#Condiciones para usar la normal
+nh*ph
+nh*(1-ph)
+nm*pm
+nm*(1-pm)
+
+# Todos son mayores 5, por tanto se puede usar la normal
+
+# Regla de decisión 
+z <- abs(qnorm(0.05/2))
+
+LimID = (pm - ph) - z*sqrt(ph*(pm)/nh + pm*(ph)/nm)
+LimSD = (pm - ph) + z*sqrt(ph*(pm)/nh + pm*(ph)/nm)
+
+
+cat("El intervalo de diferencia de proporciones de mujeres y hombres fallecidos 
+    con hipertensión", "[", LimID, ",", LimSD, "]\n")
+
+```
+
+> Del intervalo de confianza calculado podemos asegurar que la diferencia de proporciones es negativa, ya que la proporción de hombres que fallecieron y padecían de hipertensión es mayor a la de las mujeres. Esto confirma lo observado en la gráfica bidimensional.
+
+### Análisis de la variable de EPOC con respecto al sexo
+
+> Para obtener un mejor entendimiento de la influencia de la morbilidad EPOC sobre el falleciemiento de ambos sexos, se calculan los intervalos de confianza para la diferencia de proporciones utilizando nivel de confianza del 95%
+
+```{r,echo=FALSE}
+
+# Tabla bivariada de fallecidos con respecto a las variables de EPOC y sexo
+fsexo = fallecidos$SEXO
+fepoc = fallecidos$EPOC
+tb_e = table(fsexo, fepoc)
+
+# Tabla bivariada con nombres de referencia
+row.names(tb_e) = c("MUJERES", "HOMBRES")
+colnames(tb_e) = c("SÍ", "NO", "SR")
+print("La tabla en frecuencias:")
+tb_e
+
+# Tabla bivariada en porcentajes
+print("La tabla en proporciones: ")
+tp_e = round(prop.table(tb_e), 4)
+tp_e
+
+# Gráfica bidimensional para la tabla bivariada
+plot(tb_e, col = c("#DEBD93", "#F2ECBF", "#0D0D0D"), 
+     xlab = "Sexo", ylab = "EPOC", main = "Sexo-EPOC")
+```
+
+> Para la tabla de EPOC se tiene que hay 111 personas que sufrían de esta enfermedad. De estas, 65 son hombres, lo que nos dice que son 0.7% más propensos a morir que las mujeres. Igualmente, se puede ver que hay más fallecidos por COVID-19 que no sufren de esta enfermedad.
+
+```{r PH EPOC,echo=FALSE}
+# Cálculo de intervalos de confianza con significancia del 0.05
+
+ph = tp_e[2,1]
+
+pm = tp_e[1,1]
+  
+a  = 0.05
+
+#Condiciones para usar la normal
+nh*ph
+nh*(1-ph)
+nm*pm
+nm*(1-pm)
+
+# Todos son mayores 5, por tanto se puede usar la normal
+
+# Regla de decisión 
+z <- abs(qnorm(0.05/2))
+
+LimID = (pm - ph) - z*sqrt(ph*(pm)/nh + pm*(ph)/nm)
+LimSD = (pm - ph) + z*sqrt(ph*(pm)/nh + pm*(ph)/nm)
+
+
+cat("El intervalo de diferencia de proporciones de mujeres y hombres fallecidos 
+    con EPOC", "[", LimID, ",", LimSD, "]\n")
+
+```
+
+> Del intervalo de confianza calculado podemos asegurar que la diferencia de proporciones es negativa, ya que la proporción de hombres que fallecieron y padecían de EPOC es mayor a la de las mujeres. Esto confirma lo observado en la gráfica bidimensional.
+
+### Análisis de la variable de enfermedad renal crónica con respecto al sexo
+
+> Para obtener un mejor entendimiento de la influencia de la morbilidad enfermedad renal crónica sobre el falleciemiento de ambos sexos, se calculan los intervalos de confianza para la diferencia de proporciones utilizando nivel de confianza del 95%
+
+```{r,echo=FALSE}
+
+# Tabla bivariada de fallecidos con respecto a las variables de enfermedad renal crónica y sexo
+fsexo = fallecidos$SEXO
+frenal = fallecidos$RENAL_CRONICA
+tb_r = table(fsexo, frenal)
+
+# Tabla bivariada con nombres de referencia
+row.names(tb_r) = c("MUJERES", "HOMBRES")
+colnames(tb_r) = c("SÍ", "NO", "SR")
+print("La tabla en frecuencias:")
+tb_r
+
+# Tabla bivariada en porcentajes
+print("La tabla en proporciones: ")
+tp_r = round(prop.table(tb_r), 4)
+tp_r
+
+# Gráfica bidimensional para la tabla bivariada
+plot(tb_r, col = c("#DDF2B2", "#D1EEEE", "#0D0D0D"), 
+     xlab = "Sexo", ylab = "Enfermedad renal crónica", main = "Sexo-Renal")
+```
+
+> Para la tabla de enfermedad renal crónica se tiene que hay 204 personas que sufrían de esta enfermedad. De estas, 132 son hombres, lo que nos dice que son 2.21% más propensos a morir que las mujeres. Igualmente, se puede ver que hay más fallecidos por COVID-19 que no sufren de esta enfermedad.
+
+```{r PH Renal,echo=FALSE}
+# Cálculo de intervalos de confianza con significancia del 0.05
+
+ph = tp_r[2,1]
+
+pm = tp_r[1,1]
+  
+a  = 0.05
+
+#Condiciones para usar la normal
+nh*ph
+nh*(1-ph)
+nm*pm
+nm*(1-pm)
+
+# Todos son mayores 5, por tanto se puede usar la normal
+
+# Regla de decisión 
+z <- abs(qnorm(0.05/2))
+
+LimID = (pm - ph) - z*sqrt(ph*(pm)/nh + pm*(ph)/nm)
+LimSD = (pm - ph) + z*sqrt(ph*(pm)/nh + pm*(ph)/nm)
+
+
+cat("El intervalo de diferencia de proporciones de mujeres y hombres fallecidos 
+    con enfermedad renal", "[", LimID, ",", LimSD, "]\n")
+
+```
+
+> Del intervalo de confianza calculado podemos asegurar que la diferencia de proporciones es negativa, ya que la proporción de hombres que fallecieron y padecían de una enfermedad renal crónica es mayor a la de las mujeres. Esto confirma lo observado en la gráfica bidimensional.
+
+### Análisis de la variable de asma con respecto al sexo
+
+> Para obtener un mejor entendimiento de la influencia de la morbilidad asma sobre el falleciemiento de ambos sexos, se calculan los intervalos de confianza para la diferencia de proporciones utilizando nivel de confianza del 95%
+
+```{r,echo=FALSE}
+
+# Tabla bivariada de fallecidos con respecto a las variables de asma y sexo
+fsexo = fallecidos$SEXO
+fasma = fallecidos$ASMA
+tb_a = table(fsexo, fasma)
+tb_a[1,1]
+tb_a[2,1]
+
+# Tabla bivariada con nombres de referencia
+row.names(tb_a) = c("MUJERES", "HOMBRES")
+colnames(tb_a) = c("SÍ", "NO", "SR")
+print("La tabla en frecuencias:")
+tb_a
+
+# Tabla bivariada en porcentajes
+print("La tabla en proporciones: ")
+tp_a = round(prop.table(tb_a), 4)
+tp_a
+
+# Gráfica bidimensional para la tabla bivariada
+plot(tb_a, col = c("#F2ECBF", "#EED5D2", "#0D0D0D"), 
+     xlab = "Sexo", ylab = "Asma", main = "Sexo-Asma")
+
+```
+
+> Para la tabla de asma se tiene que hay 42 personas que sufrían de esta enfermedad. De estas, 23 son hombres, lo que nos dice que son 0.014% más propensos a morir que las mujeres. Igualmente, se puede ver que hay más fallecidos por COVID-19 que no sufren de esta enfermedad.
+
+```{r PH Asma,echo=FALSE}
+# Cálculo de intervalos de confianza con significancia del 0.05
+
+ph = tp_a[2,1]
+
+pm = tp_a[1,1]
+  
+a  = 0.05
+
+#Condiciones para usar la normal
+nh*ph
+nh*(1-ph)
+nm*pm
+nm*(1-pm)
+
+# Todos son mayores 5, por tanto se puede usar la normal
+
+# Regla de decisión 
+z <- abs(qnorm(0.05/2))
+
+LimID = (pm - ph) - z*sqrt(ph*(pm)/nh + pm*(ph)/nm)
+LimSD = (pm - ph) + z*sqrt(ph*(pm)/nh + pm*(ph)/nm)
+
+
+cat("El intervalo de diferencia de proporciones de mujeres y hombres fallecidos 
+    con enfermedad renal", "[", LimID, ",", LimSD, "]\n")
+
+```
+
+> Del intervalo de confianza calculado podemos asegurar que la diferencia de proporciones es negativa, ya que la proporción de hombres que fallecieron y padecían de Diabetes es mayor a la de las mujeres. Esto confirma lo observado en la gráfica bidimensional.
+
+## ¿La muerte por COVID-19 en personas con las morbilidades analizadas depende del sexo?
+
+> Para tener un mejor entendimiento de la relación de ambos factores se propone realizar una prueba de independencia (Chi cuadrada) para aceptar o rechazar la siguiente hipótesis:
+
+> $H_{0} :$ El fallecimiento de personas por COVID-19 con morbilidades es independiente de su sexo.
+
+> $H_{1} :$ El fallecimiento de personas por COVID-19 con morbilidades no es independiente de su sexo.
+
+```{r,echo=FALSE}
+d1=c(tb_d[1,1], tb_h[1,1], tb_e[1,1], tb_r[1,1], tb_a[1,1]) 
+d2=c(tb_d[2,1], tb_h[2,1], tb_e[2,1], tb_r[2,1], tb_a[2,1])
+Q<-as.table(rbind(d1,d2))
+dimnames(Q)<-list(sexo=c("M","H"),morbilidad=c("Diabetes","Hipertensión","EPOC","Renal","Asma"))
+M<-chisq.test(Q)
+M
+M$expected
+M$residuals
+qchisq(0.95,2)
+
+```
+
+> Dado que valor-p \> 0.05, se puede decir que las morbilidades dependen del sexo del paciente, esto quiere decir que los factores biológicos que seleccionados (Morbilidades) no representan información suficiente para comprobar nuestra hipótesis de que la causa de muerte por COVID se vea afectada por factores biológicos de cada sexo.
+
+## ¿La muerte por COVID-19 depende del sexo?
+
+> Para tener un mejor entendimiento de la relación de ambos factores se propone realizar una prueba de independencia (Chi cuadrada) para aceptar o rechazar la siguiente hipótesis:
+
+> $H_{0} :$ El fallecimiento de personas por COVID-19 es independiente de su sexo.
+
+> $H_{1} :$ El fallecimiento de personas por COVID-19 no es independiente de su sexo.
+
+```{r,echo=FALSE}
+D1=c(t_sexo["Mujeres"], t_sexoPos["Mujeres"]) 
+D2=c(t_sexo["Hombres"], t_sexoPos["Hombres"])
+Qm<-as.table(rbind(D1,D2))
+dimnames(Qm)<-list(sexo=c("M","H"),condicion=c("Muertos", "Vivos"))
+Mm<-chisq.test(Qm)
+Mm
+Mm$expected
+Mm$residuals
+qchisq(0.95,2)
+```
+
+> Al hacer la prueba de independencia de la relacion entre la muerte y el genero de los pacientes, se tienen los datos para decir que las variables no son independientes, por lo tanto se puede pensar que sí hay una relacion entre el genero y la probabilidad de fallecimiento por COVID-19.
+
+# Discusión y conclusiones
+
+> Una vez hecho el análisis de los datos proporcionados por el Gobierno de México, fue posible dar evidencia para afirmar que la proporción de hombres muertos por COVID-19 es mayor que la de las mujeres. Esto indica que hay un factor relacionado con el sexo el cual aumenta la probabilidad de fallecer a causa del virus; esto se confirma realizando una prueba de independencia entre factores.
+
+> Igualmente, al seguir la línea de investigación, se analizaron los datos de diferentes morbilidades y su presencia en pacientes fallecidos. Con esto, se obtuvo que la diferencia de proporción entre hombres y mujeres es distinta. Estas molbilidades no son dependientes del sexo y por lo tanto no se pueden tomar como un factor biológico que influye en la diferencia de proporciones de muerte entre hombres y mujeres.
+
+> Finalmente se concluyó que a pesar de que la probabilidad de muerte se ve influida por el sexo, los factores biológicos analizados no son los responsables de un aumento de probabilidad de muerte para algun sexo. De igual manera, los factores que generan esta diferencia son sociales u ocasionados por otras variables biológicas no consideradas en este análisis.
+
+# Referencias bibliográficas
+
+> Henriques, M. (12 de Abril de 2020). Why Covid-19 is diferent for men and woman. BBC future
+
+> Feldsher, K. (31 de Julio de 2020). More men than women are dying from Covid-19. Why?. Harvard T.H. Chan School of Public Health. <https://www.hsph.harvard.edu/news/features/more-men-than-women-are-dying-from-covid-19-why/>
+
+> Secretaría de salud. (19 de septiembre,2021). Datos abiertos covid-19 [database]. <https://www.gob.mx/salud/documentos/datos-abiertos-152127>
+
+# Anexo
+
